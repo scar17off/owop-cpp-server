@@ -15,6 +15,13 @@ cmake .. -G "MinGW Makefiles"
 mingw32-make
 ```
 
+### Building with vcpkg
+
+```sh
+cmake .. -G "MinGW Makefiles" -DCMAKE_TOOLCHAIN_FILE=../vcpkg_root/scripts/buildsystems/vcpkg.cmake
+mingw32-make
+```
+
 ## Running
 The output file is `build/owop-cpp-server.exe`. You can run it with:
 
@@ -22,14 +29,7 @@ The output file is `build/owop-cpp-server.exe`. You can run it with:
 ./build/owop-cpp-server.exe
 ```
 
-# Building with vcpkg
-
-```sh
-cmake .. -G "MinGW Makefiles" -DCMAKE_TOOLCHAIN_FILE=../vcpkg_root/scripts/buildsystems/vcpkg.cmake
-mingw32-make
-```
-
-# Installing dependencies
+## Installing dependencies
 The dependencies are:
 - [uWebSockets](https://github.com/uNetworking/uWebSockets)
 - [OpenSSL](https://github.com/openssl/openssl)
@@ -39,7 +39,7 @@ vcpkg install uwebsockets[core]:x64-mingw-dynamic
 vcpkg install openssl:x64-mingw-dynamic\
 ```
 
-## TODO
+# TODO
 - [ ] Route the client to the http server
 - [ ] The basic server classes and components
 - [ ] Logging system
@@ -48,10 +48,10 @@ vcpkg install openssl:x64-mingw-dynamic\
 - [ ] OWOP protocol implementation
 - [ ] Customizeable ranking system
 
-## License
+# License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE.md) file for more details.
 
-## Contributing
+# Contributing
 
 Contributions are welcome! Please feel free to submit a PR.
