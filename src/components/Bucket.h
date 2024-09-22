@@ -16,7 +16,7 @@ public:
     void update();
     bool canSpend(double count);
     void setInfinite(bool value);
-
+    bool isInfinite() const;
     double getRate() const { return rate; }
     double getTime() const { return time; }
 };

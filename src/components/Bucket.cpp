@@ -34,3 +34,7 @@ bool Bucket::canSpend(double count) {
 void Bucket::setInfinite(bool value) {
     infinite = value;
 }
+
+bool Bucket::isInfinite() const {
+    return infinite;
+}

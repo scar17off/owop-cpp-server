@@ -13,6 +13,7 @@ public:
     std::vector<std::vector<RGB>> data;
 
     Chunk(int x, int y, const std::string& world);
+
     RGB getColor(int localX, int localY) const;
     void setColor(int localX, int localY, const RGB& color);
     void setRGB(const RGB& color);
@@ -24,6 +25,9 @@ public:
     bool loadFromFile();
 
     bool isFullyWhite() const;
+    bool isProtected() const { return false; }
+
+    std::vector<uint8_t> getData() const;
 
 private:
     std::string getFilePath() const;

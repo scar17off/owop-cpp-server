@@ -2,6 +2,10 @@
 
 #include <cstdint>
 
+#ifdef RGB
+#undef RGB
+#endif
+
 class RGB {
 public:
     uint8_t r;

@@ -8,6 +8,7 @@
 #include <vector>
 #include <algorithm>
 #include "components/Client.h"
+#include "components/Chunk.h"
 
 struct PerSocketData {
     Client* client;
@@ -132,8 +133,6 @@ int main() {
             auto* socketData = (PerSocketData*)ws->getUserData();
             Client* client = socketData->client;
 
-            std::cout << "Protocol: " << static_cast<int>(protocol["client"]["rankVerification"].get<uint8_t>()) << std::endl;
-
             if (opCode == uWS::OpCode::BINARY) {
                 const uint8_t* data = reinterpret_cast<const uint8_t*>(message.data());
                 size_t length = message.length();
@@ -180,15 +179,50 @@ int main() {
                         }
                         break;
                     }
-                    case requestChunkLength:
-                        // Handle request chunk message
+                    case requestChunkLength: {
+                        int32_t x = *reinterpret_cast<const int32_t*>(data);
+                        int32_t y = *reinterpret_cast<const int32_t*>(data + 4);
+                        
+                        int tileX = x;
+                        int tileY = y;
+
+                        Chunk chunk(tileX, tileY, client->getWorld());
+                        chunk.loadFromFile();
+
+                        std::vector<uint8_t> chunkData = chunk.getData();
+                        ws->send(std::string_view(reinterpret_cast<char*>(chunkData.data()), chunkData.size()), uWS::OpCode::BINARY);
                         break;
+                    }
                     case protectChunkLength:
                         // Handle protect chunk message
                         break;
-                    case setPixelLength:
-                        // Handle set pixel message
+                    case setPixelLength: {
+                        if (client->getRank() == 0) break;
+                        if (!client->getPixelBucket().canSpend(1) && !client->getPixelBucket().isInfinite()) break;
+
+                        int32_t x = *reinterpret_cast<const int32_t*>(data);
+                        int32_t y = *reinterpret_cast<const int32_t*>(data + 4);
+                        uint8_t r = data[8];
+                        uint8_t g = data[9];
+                        uint8_t b = data[10];
+
+                        int tileX = x / Chunk::CHUNK_SIZE;
+                        int tileY = y / Chunk::CHUNK_SIZE;
+                        int pixX = x % Chunk::CHUNK_SIZE;
+                        int pixY = y % Chunk::CHUNK_SIZE;
+
+                        Chunk chunk(tileX, tileY, client->getWorld());
+                        if (chunk.isProtected() && client->getRank() < 2) break; // No permission to place on a protected chunk
+                        
+                        RGB currentColor = chunk.getColor(pixX, pixY);
+                        if (currentColor == RGB(r, g, b)) break;
+
+                        chunk.setColor(pixX, pixY, RGB(r, g, b));
+                        chunk.saveToFile();
+
+                        std::cout << "Client " << client->getId() << " set pixel " << x << ", " << y << " to " << r << ", " << g << ", " << b << std::endl;
                         break;
+                    }
                     case playerUpdateLength:
                         // Handle player update message
                         break;
