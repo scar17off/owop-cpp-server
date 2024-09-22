@@ -53,6 +53,7 @@ int main() {
         std::string path = std::string(req->getUrl());
         std::string filePath = routingDir + (path == "/" ? "index.html" : path.substr(1));
 
+        // Check if the file exists and is not a directory
         if (std::filesystem::exists(filePath) && !std::filesystem::is_directory(filePath)) {
             std::ifstream file(filePath, std::ios::binary);
             if (file) {
@@ -66,6 +67,7 @@ int main() {
                 std::string content(size, '\0');
                 file.read(&content[0], size);
 
+                // Send the file content with appropriate headers
                 res->writeHeader("Content-Type", mimeType)
                    ->writeHeader("Cache-Control", "public, max-age=3600")
                    ->end(content);
@@ -73,6 +75,7 @@ int main() {
                 res->writeStatus("404 Not Found")->end("File not found");
             }
         } else {
+            // If the file doesn't exist, serve index.html
             std::ifstream indexFile(routingDir + "index.html");
             if (indexFile) {
                 std::string content((std::istreambuf_iterator<char>(indexFile)), std::istreambuf_iterator<char>());
@@ -88,8 +91,20 @@ int main() {
         },
 
         .message = [](auto *ws, std::string_view message, uWS::OpCode opCode) {
-            std::cout << "Received message: " << message << std::endl;
-            ws->send(message, opCode);
+            if (opCode == uWS::OpCode::BINARY) {
+                const uint8_t* data = reinterpret_cast<const uint8_t*>(message.data());
+                size_t length = message.length();
+                
+                std::cout << "Received binary message of length: " << length << " | ";
+                for (size_t i = 0; i < length; ++i) {
+                    std::cout << "b" << i << ": " << static_cast<int>(data[i]);
+                    if (i < length - 1) std::cout << " | ";
+                }
+                std::cout << std::endl;
+            } else {
+                std::cout << "Received text message: " << message << std::endl;
+                ws->send(message, opCode);
+            }
         },
 
         .close = [](auto *ws, int code, std::string_view message) {
