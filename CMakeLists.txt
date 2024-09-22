@@ -17,7 +17,11 @@ endif()
 link_directories(C:/vcpkg/installed/x64-mingw-dynamic/lib)
 
 # Add executable
-add_executable(owop-cpp-server src/main.cpp src/Client.cpp)
+add_executable(owop-cpp-server 
+    src/main.cpp 
+    src/components/Client.cpp
+    src/components/Bucket.cpp
+)
 
 # Link uWebSockets, OpenSSL, Zlib, libuv, and Winsock
 target_link_libraries(owop-cpp-server PRIVATE nlohmann_json::nlohmann_json uSockets ssl crypto zlib uv ws2_32)

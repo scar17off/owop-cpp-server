@@ -4,6 +4,7 @@
 #include <uwebsockets/WebSocket.h>
 #include <string>
 #include <vector>
+#include "Bucket.h"
 
 struct PerSocketData;
 
@@ -15,6 +16,7 @@ private:
     double x;
     double y;
     std::string world;
+    Bucket pixelBucket;
 
 public:
     Client(uWS::WebSocket<false, true, PerSocketData>* socket);
@@ -30,6 +32,8 @@ public:
 
     void setWorld(const std::string& newWorld);
     std::string getWorld() const;
+
+    Bucket& getPixelBucket();
 
     void send(const std::vector<uint8_t>& data);
     void disconnect();
