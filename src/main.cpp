@@ -5,8 +5,12 @@
 #include <filesystem>
 #include <string>
 #include <unordered_map>
+#include <vector>
+#include <algorithm>
+#include "Client.h"
 
-struct PerSocketData {
+struct PerSocketData { 
+    Client* client;
 };
 
 // Function to get MIME type based on file extension
@@ -35,18 +39,13 @@ std::string getMimeType(const std::string& extension) {
 }
 
 int main() {
-    std::ifstream configFile("config.json");
-    if (!configFile.is_open()) {
-        std::cerr << "Failed to open config.json" << std::endl;
-        return 1;
-    }
-
-    nlohmann::json config;
-    configFile >> config;
-    
-    int port = config["port"].get<int>();
+    nlohmann::json config = nlohmann::json::parse(std::ifstream("config.json"));
+    nlohmann::json protocol = nlohmann::json::parse(std::ifstream("protocol.json"));
 
     const std::string routingDir = "./routing/";
+    const int port = config["port"].get<int>();
+
+    std::vector<Client*> clients;
 
     uWS::App()
     .get("/*", [routingDir](auto *res, auto *req) {
@@ -86,11 +85,31 @@ int main() {
         }
     })
     .ws<PerSocketData>("/*", {
-        .open = [](auto *ws) {
+        .open = [&protocol, &clients](auto *ws) {
             std::cout << "Client connected!" << std::endl;
+
+            // Create a new Client object and store it in PerSocketData
+            auto* socketData = (PerSocketData*)ws->getUserData();
+            socketData->client = new Client(ws);
+            clients.push_back(socketData->client);
+
+            // Send [captcha, 3] binary buffer
+            uint8_t captchaCode = protocol["server"]["captcha"].get<uint8_t>();
+            std::vector<uint8_t> buffer = {captchaCode, 3};
+            ws->send(std::string_view(reinterpret_cast<char*>(buffer.data()), buffer.size()), uWS::OpCode::BINARY);
+
+            // Send [0, Id, 0, 0, 0] binary buffer (id is the length of clients)
+            uint8_t setIdCode = protocol["server"]["setId"].get<uint8_t>();
+            uint8_t id = clients.size();
+            buffer = {setIdCode, id, 0, 0, 0};
+            ws->send(std::string_view(reinterpret_cast<char*>(buffer.data()), buffer.size()), uWS::OpCode::BINARY);
+            ws->setId(id);
         },
 
-        .message = [](auto *ws, std::string_view message, uWS::OpCode opCode) {
+        .message = [&clients](auto *ws, std::string_view message, uWS::OpCode opCode) {
+            auto* socketData = ws->getUserData();
+            Client* client = socketData->client;
+
             if (opCode == uWS::OpCode::BINARY) {
                 const uint8_t* data = reinterpret_cast<const uint8_t*>(message.data());
                 size_t length = message.length();
@@ -101,13 +120,39 @@ int main() {
                     if (i < length - 1) std::cout << " | ";
                 }
                 std::cout << std::endl;
+
+                // Decode the first message from the client (world name)
+                if (length > 2 && length - 2 <= 24) {
+                    std::string world;
+                    for (size_t i = 0; i < length - 2; ++i) {
+                        world += static_cast<char>(data[i]);
+                    }
+                    // Remove non-alphanumeric characters and convert to lowercase
+                    world.erase(std::remove_if(world.begin(), world.end(), [](char c) {
+                        return !(std::isalnum(c) || c == '.' || c == '_');
+                    }), world.end());
+                    std::transform(world.begin(), world.end(), world.begin(), ::tolower);
+
+                    if (world.empty()) {
+                        world = "main";
+                    }
+                    client->setWorld(world);
+                    std::cout << "Client joined world: " << world << std::endl;
+                }
             } else {
                 std::cout << "Received text message: " << message << std::endl;
                 ws->send(message, opCode);
             }
         },
 
-        .close = [](auto *ws, int code, std::string_view message) {
+        .close = [&clients](auto *ws, int code, std::string_view message) {
+            auto* socketData = ws->getUserData();
+            Client* client = socketData->client;
+
+            // Remove the client from the list
+            clients.erase(std::remove(clients.begin(), clients.end(), client), clients.end());
+            delete client;
+
             std::cout << "Client disconnected!" << std::endl;
         }
     }).listen(port, [port](auto *token) {
@@ -117,6 +162,10 @@ int main() {
             std::cerr << "Failed to listen on port " << port << std::endl;
         }
     }).run();
+
+    for (auto* client : clients) {
+        delete client;
+    }
 
     std::cout << "Server shutting down" << std::endl;
     return 0;
