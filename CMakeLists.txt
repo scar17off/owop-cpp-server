@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # Add include directories for uWebSockets
 include_directories(C:/vcpkg/installed/x64-mingw-dynamic/include)
+find_package(nlohmann_json CONFIG REQUIRED)
+
 # Add library directories for uWebSockets
 link_directories(C:/vcpkg/installed/x64-mingw-dynamic/lib)
 
@@ -13,7 +15,7 @@ link_directories(C:/vcpkg/installed/x64-mingw-dynamic/lib)
 add_executable(owop-cpp-server src/main.cpp)
 
 # Link uWebSockets, OpenSSL, Zlib, libuv, and Winsock
-target_link_libraries(owop-cpp-server uSockets ssl crypto zlib uv ws2_32)
+target_link_libraries(owop-cpp-server PRIVATE nlohmann_json::nlohmann_json uSockets ssl crypto zlib uv ws2_32)
 
 # Ensure Visual Studio environment is set up
 if(MSVC)
@@ -29,3 +31,29 @@ endif()
 
 # Enable verbose output
 set(CMAKE_VERBOSE_MAKEFILE ON)
+
+# Copy config.json to the build output folder
+add_custom_command(TARGET owop-cpp-server POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_SOURCE_DIR}/src/config.json
+        $<TARGET_FILE_DIR:owop-cpp-server>/config.json
+)
+
+# Copy protocol.json to the build output folder
+add_custom_command(TARGET owop-cpp-server POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_SOURCE_DIR}/src/protocol.json
+        $<TARGET_FILE_DIR:owop-cpp-server>/protocol.json
+)
+
+# Copy routing directory to the build output folder
+add_custom_command(TARGET owop-cpp-server POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_SOURCE_DIR}/src/routing/
+        $<TARGET_FILE_DIR:owop-cpp-server>/routing/
+)
+
+# Ensure the output directory is set correctly
+set_target_properties(owop-cpp-server PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)

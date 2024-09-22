@@ -36,7 +36,8 @@ The dependencies are:
 
 ```sh
 vcpkg install uwebsockets[core]:x64-mingw-dynamic
-vcpkg install openssl:x64-mingw-dynamic\
+vcpkg install openssl:x64-mingw-dynamic
+vcpkg install nlohmann-json3:x64-mingw-dynamic
 ```
 
 # TODO
