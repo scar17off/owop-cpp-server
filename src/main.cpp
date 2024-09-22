@@ -85,7 +85,7 @@ int main() {
         }
     })
     .ws<PerSocketData>("/*", {
-        .open = [&protocol, &clients](auto *ws) {
+        .open = [&protocol, &clients, &config](auto *ws) {
             auto* socketData = (PerSocketData*)ws->getUserData();
             Client* client = new Client(ws);
             socketData->client = client;
@@ -112,6 +112,20 @@ int main() {
             buffer = {setRankCode, rank};
             ws->send(std::string_view(reinterpret_cast<char*>(buffer.data()), buffer.size()), uWS::OpCode::BINARY);
             client->setRank(rank);
+
+            // Set the rank's quota
+            const auto& rankConfig = config["bucket"];
+            const std::string rankKey = (rank == 0) ? "none" : (rank == 1) ? "user" : (rank == 2) ? "mod" : "admin";
+
+            const auto& pixelConfig = rankConfig["pixel"][rankKey];
+            client->setPixelBucket(pixelConfig[0].get<double>(), pixelConfig[1].get<double>());
+
+            const auto& chatConfig = rankConfig["chat"][rankKey];
+            client->setChatBucket(chatConfig[0].get<double>(), chatConfig[1].get<double>());
+
+            std::cout << "Client " << client->getId() << " connected with rank " << rank << std::endl;
+            std::cout << "Pixel quota: " << client->getPixelBucket().getRate() << " | " << client->getPixelBucket().getTime() << std::endl;
+            std::cout << "Chat quota: " << client->getChatBucket().getRate() << " | " << client->getChatBucket().getTime() << std::endl;
         },
 
         .message = [&clients](auto *ws, std::string_view message, uWS::OpCode opCode) {

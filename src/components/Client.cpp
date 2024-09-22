@@ -1,7 +1,7 @@
 #include "Client.h"
 
 Client::Client(uWS::WebSocket<false, true, PerSocketData>* socket)
-    : ws(socket), id(0), rank(0), x(0.0), y(0.0), world(""), pixelBucket(32, 1) {}
+    : ws(socket), id(0), rank(0), x(0.0), y(0.0), world(""), pixelBucket(32, 4), chatBucket(32, 4) {}
 
 void Client::setId(uint8_t newId) {
     id = newId;
@@ -36,8 +36,21 @@ std::string Client::getWorld() const {
     return world;
 }
 
+/* Pixel Bucket*/
+void Client::setPixelBucket(double rate, double time) {
+    pixelBucket = Bucket(rate, time);
+}
+
 Bucket& Client::getPixelBucket() {
     return pixelBucket;
+}
+/* Chat Bucket */
+void Client::setChatBucket(double rate, double time) {
+    chatBucket = Bucket(rate, time);
+}
+
+Bucket& Client::getChatBucket() {
+    return chatBucket;
 }
 
 void Client::send(const std::vector<uint8_t>& data) {

@@ -17,6 +17,7 @@ private:
     double y;
     std::string world;
     Bucket pixelBucket;
+    Bucket chatBucket;
 
 public:
     Client(uWS::WebSocket<false, true, PerSocketData>* socket);
@@ -33,7 +34,11 @@ public:
     void setWorld(const std::string& newWorld);
     std::string getWorld() const;
 
+    void setPixelBucket(double rate, double time);
     Bucket& getPixelBucket();
+
+    void setChatBucket(double rate, double time);
+    Bucket& getChatBucket();
 
     void send(const std::vector<uint8_t>& data);
     void disconnect();

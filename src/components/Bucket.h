@@ -16,6 +16,9 @@ public:
     void update();
     bool canSpend(double count);
     void setInfinite(bool value);
+
+    double getRate() const { return rate; }
+    double getTime() const { return time; }
 };
 
 #endif // BUCKET_H
