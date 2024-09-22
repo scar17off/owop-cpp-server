@@ -18,7 +18,7 @@ link_directories(C:/vcpkg/installed/x64-mingw-dynamic/lib)
 
 # Add executable
 add_executable(owop-cpp-server 
-    src/main.cpp 
+    src/main.cpp
     src/components/Client.cpp
     src/components/Bucket.cpp
     src/components/Chunk.cpp

@@ -50,9 +50,12 @@ vcpkg install nlohmann-json3:x64-mingw-dynamic
 
 # TODO
 - [x] Route the client to the http server
-- [ ] The basic server classes and components
+- [/] The basic server classes and components
 - [ ] Logging system
-- [ ] Message handling
+- [x] Message handling
+- [ ] Commands
+- [ ] Multiplayer support
+- [ ] Threaded chunk loading
 - [ ] Connection handling
 - [ ] OWOP protocol implementation
 - [ ] Customizeable ranking system

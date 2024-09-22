@@ -11,19 +11,21 @@ struct PerSocketData;
 class Client {
 private:
     uWS::WebSocket<false, true, PerSocketData>* ws;
-    uint8_t id;
+    int id;
     int rank;
     double x;
     double y;
     std::string world;
     Bucket pixelBucket;
     Bucket chatBucket;
+    uint8_t r, g, b;
+    uint8_t tool;
 
 public:
     Client(uWS::WebSocket<false, true, PerSocketData>* socket);
 
-    void setId(uint8_t newId);
-    uint8_t getId() const;
+    void setId(int newId);
+    int getId() const;
 
     void setRank(int newRank);
     int getRank() const;
@@ -42,6 +44,17 @@ public:
 
     void send(const std::vector<uint8_t>& data);
     void disconnect();
+
+    void setColor(uint8_t r, uint8_t g, uint8_t b);
+    void setTool(uint8_t tool);
+
+    uint8_t getR() const;
+    uint8_t getG() const;
+    uint8_t getB() const;
+    uint8_t getTool() const;
+
+    double getX() const; // Add this method
+    double getY() const; // Add this method
 };
 
 #endif // CLIENT_H

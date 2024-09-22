@@ -91,7 +91,7 @@ int main() {
             Client* client = new Client(ws);
             socketData->client = client;
 
-            std::cout << "Client connected!" << std::endl;
+            std::cout << "Client " << client->getId() << " connected!" << std::endl;
 
             clients.push_back(client);
 
@@ -123,10 +123,6 @@ int main() {
 
             const auto& chatConfig = rankConfig["chat"][rankKey];
             client->setChatBucket(chatConfig[0].get<double>(), chatConfig[1].get<double>());
-
-            std::cout << "Client " << client->getId() << " connected with rank " << rank << std::endl;
-            std::cout << "Pixel quota: " << client->getPixelBucket().getRate() << " | " << client->getPixelBucket().getTime() << std::endl;
-            std::cout << "Chat quota: " << client->getChatBucket().getRate() << " | " << client->getChatBucket().getTime() << std::endl;
         },
 
         .message = [&protocol, &clients](auto *ws, std::string_view message, uWS::OpCode opCode) {
@@ -137,7 +133,7 @@ int main() {
                 const uint8_t* data = reinterpret_cast<const uint8_t*>(message.data());
                 size_t length = message.length();
                 
-                /* Log the bytes */
+                // Log the bytes
                 std::cout << "Received binary message of length: " << length << " | ";
                 for (size_t i = 0; i < length; ++i) {
                     std::cout << "b" << i << ": " << static_cast<int>(data[i]);
@@ -158,7 +154,7 @@ int main() {
                         world = "main";
                     }
                     client->setWorld(world);
-                    std::cout << "Client joined world: " << world << std::endl;
+                    std::cout << "Client " << client->getId() << " joined world: " << world << std::endl;
                 }
 
                 // Define variables for protocol message lengths
@@ -220,12 +216,24 @@ int main() {
                         chunk.setColor(pixX, pixY, RGB(r, g, b));
                         chunk.saveToFile();
 
-                        std::cout << "Client " << client->getId() << " set pixel " << x << ", " << y << " to " << r << ", " << g << ", " << b << std::endl;
+                        std::cout << "Client " << client->getId() << " set pixel " << x << ", " << y << " to " << static_cast<int>(r) << ", " << static_cast<int>(g) << ", " << static_cast<int>(b) << std::endl;
                         break;
                     }
-                    case playerUpdateLength:
-                        // Handle player update message
+                    case playerUpdateLength: {
+                        int32_t x = *reinterpret_cast<const int32_t*>(data);
+                        int32_t y = *reinterpret_cast<const int32_t*>(data + 4);
+                        uint8_t r = data[8];
+                        uint8_t g = data[9];
+                        uint8_t b = data[10];
+                        uint8_t tool = data[11];
+
+                        client->setPosition(x, y);
+                        client->setColor(r, g, b);
+                        client->setTool(tool);
+
+                        std::cout << "Client " << client->getId() << " updated position to " << static_cast<int>(x) << ", " << static_cast<int>(y) << std::endl;
                         break;
+                    }
                     case clearChunkLength:
                         // Handle clear chunk message
                         break;
@@ -237,9 +245,9 @@ int main() {
                         break;
                 }
             } else {
-                std::cout << "Received text message: " << message << std::endl;
                 std::string response = std::to_string(client->getId()) + ": " + std::string(message);
                 ws->send(response, opCode);
+                std::cout << client->getId() << ": " << message << std::endl;
             }
         },
 
@@ -247,11 +255,10 @@ int main() {
             auto* socketData = ws->getUserData();
             Client* client = socketData->client;
 
-            // Remove the client from the list
             clients.erase(std::remove(clients.begin(), clients.end(), client), clients.end());
             delete client;
 
-            std::cout << "Client disconnected!" << std::endl;
+            std::cout << "Client " << client->getId() << " disconnected!" << std::endl;
         }
     }).listen(port, [port](auto *token) {
         if (token) {

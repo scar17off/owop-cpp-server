@@ -3,12 +3,12 @@
 Client::Client(uWS::WebSocket<false, true, PerSocketData>* socket)
     : ws(socket), id(0), rank(0), x(0.0), y(0.0), world(""), pixelBucket(32, 4), chatBucket(32, 4) {}
 
-void Client::setId(uint8_t newId) {
+void Client::setId(int newId) {
     id = newId;
 }
 
-uint8_t Client::getId() const {
-    return static_cast<uint8_t>(id);
+int Client::getId() const {
+    return id;
 }
 
 void Client::setRank(int newRank) {
@@ -36,7 +36,6 @@ std::string Client::getWorld() const {
     return world;
 }
 
-/* Pixel Bucket*/
 void Client::setPixelBucket(double rate, double time) {
     pixelBucket = Bucket(rate, time);
 }
@@ -44,7 +43,7 @@ void Client::setPixelBucket(double rate, double time) {
 Bucket& Client::getPixelBucket() {
     return pixelBucket;
 }
-/* Chat Bucket */
+
 void Client::setChatBucket(double rate, double time) {
     chatBucket = Bucket(rate, time);
 }
@@ -60,3 +59,21 @@ void Client::send(const std::vector<uint8_t>& data) {
 void Client::disconnect() {
     ws->close();
 }
+
+void Client::setColor(uint8_t newR, uint8_t newG, uint8_t newB) {
+    r = newR;
+    g = newG;
+    b = newB;
+}
+
+void Client::setTool(uint8_t newTool) {
+    tool = newTool;
+}
+
+uint8_t Client::getR() const { return r; }
+uint8_t Client::getG() const { return g; }
+uint8_t Client::getB() const { return b; }
+uint8_t Client::getTool() const { return tool; }
+
+double Client::getX() const { return x; }
+double Client::getY() const { return y; }
