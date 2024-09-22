@@ -8,7 +8,7 @@ void Client::setId(uint8_t newId) {
 }
 
 uint8_t Client::getId() const {
-    return id;
+    return static_cast<uint8_t>(id);
 }
 
 void Client::setRank(int newRank) {

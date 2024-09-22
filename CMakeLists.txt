@@ -21,6 +21,8 @@ add_executable(owop-cpp-server
     src/main.cpp 
     src/components/Client.cpp
     src/components/Bucket.cpp
+    src/components/Chunk.cpp
+    src/components/RGB.cpp
 )
 
 # Link uWebSockets, OpenSSL, Zlib, libuv, and Winsock

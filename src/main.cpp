@@ -128,14 +128,17 @@ int main() {
             std::cout << "Chat quota: " << client->getChatBucket().getRate() << " | " << client->getChatBucket().getTime() << std::endl;
         },
 
-        .message = [&clients](auto *ws, std::string_view message, uWS::OpCode opCode) {
+        .message = [&protocol, &clients](auto *ws, std::string_view message, uWS::OpCode opCode) {
             auto* socketData = (PerSocketData*)ws->getUserData();
             Client* client = socketData->client;
+
+            std::cout << "Protocol: " << static_cast<int>(protocol["client"]["rankVerification"].get<uint8_t>()) << std::endl;
 
             if (opCode == uWS::OpCode::BINARY) {
                 const uint8_t* data = reinterpret_cast<const uint8_t*>(message.data());
                 size_t length = message.length();
                 
+                /* Log the bytes */
                 std::cout << "Received binary message of length: " << length << " | ";
                 for (size_t i = 0; i < length; ++i) {
                     std::cout << "b" << i << ": " << static_cast<int>(data[i]);
@@ -158,9 +161,51 @@ int main() {
                     client->setWorld(world);
                     std::cout << "Client joined world: " << world << std::endl;
                 }
+
+                // Define variables for protocol message lengths
+                constexpr int rankVerificationLength = 1;
+                constexpr int requestChunkLength = 8;
+                constexpr int protectChunkLength = 10;
+                constexpr int setPixelLength = 11;
+                constexpr int playerUpdateLength = 12;
+                constexpr int clearChunkLength = 13;
+                constexpr int pasteLength = 776;
+
+                switch(length) {
+                    case rankVerificationLength: {
+                        uint8_t clientRank = data[0];
+                        if (clientRank > client->getRank()) {
+                            // Client rank is higher than server rank, disconnecting client.
+                            ws->close();
+                        }
+                        break;
+                    }
+                    case requestChunkLength:
+                        // Handle request chunk message
+                        break;
+                    case protectChunkLength:
+                        // Handle protect chunk message
+                        break;
+                    case setPixelLength:
+                        // Handle set pixel message
+                        break;
+                    case playerUpdateLength:
+                        // Handle player update message
+                        break;
+                    case clearChunkLength:
+                        // Handle clear chunk message
+                        break;
+                    case pasteLength:
+                        // Handle paste message
+                        break;
+                    default:
+                        std::cout << "Unhandled message length: " << length << std::endl;
+                        break;
+                }
             } else {
                 std::cout << "Received text message: " << message << std::endl;
-                ws->send(message, opCode);
+                std::string response = std::to_string(client->getId()) + ": " + std::string(message);
+                ws->send(response, opCode);
             }
         },
 

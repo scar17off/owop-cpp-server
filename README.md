@@ -4,9 +4,16 @@ This is a simple C++ server for the OWOP protocol. It is built using the uWebSoc
 This project is in early development and is not yet ready for production use.  
 I'm using it to learn about the OWOP protocol and to build a working server to use for testing the OWOP C++ client.
 
+## Requirements
+- [vcpkg](https://vcpkg.io/en/getting-started.html)
+- [mingw-w64](https://www.mingw-w64.org/)
+- [CMake](https://cmake.org/)
+- [Git](https://git-scm.com/)
+- [Pre-built OWOP client](https://github.com/OurSources/owop-client)
+
 ## Building
 
-You need to have [vcpkg](https://vcpkg.io/en/getting-started.html) installed and [mingw-w64](https://www.mingw-w64.org/) configured. Then you can build the project using [CMake](https://cmake.org/).
+You need to have vcpkg and mingw-w64 installed and configured. Then you can build the project using CMake.
 
 ```sh
 mkdir build
@@ -23,6 +30,7 @@ mingw32-make
 ```
 
 ## Running
+In the output folder you need to have `routing` directory with the extracted OWOP client files.
 The output file is `build/owop-cpp-server.exe`. You can run it with:
 
 ```sh
@@ -41,7 +49,7 @@ vcpkg install nlohmann-json3:x64-mingw-dynamic
 ```
 
 # TODO
-- [ ] Route the client to the http server
+- [x] Route the client to the http server
 - [ ] The basic server classes and components
 - [ ] Logging system
 - [ ] Message handling
