@@ -1,7 +1,7 @@
 #include "Client.h"
 
 Client::Client(uWS::WebSocket<false, true, PerSocketData>* socket)
-    : ws(socket), id(""), rank(0), x(0.0), y(0.0), world("") {}
+    : ws(socket), id(0), rank(0), x(0.0), y(0.0), world("") {}
 
 void Client::setId(uint8_t newId) {
     id = newId;

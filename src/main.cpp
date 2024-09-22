@@ -9,7 +9,7 @@
 #include <algorithm>
 #include "Client.h"
 
-struct PerSocketData { 
+struct PerSocketData {
     Client* client;
 };
 
@@ -86,12 +86,13 @@ int main() {
     })
     .ws<PerSocketData>("/*", {
         .open = [&protocol, &clients](auto *ws) {
+            auto* socketData = (PerSocketData*)ws->getUserData();
+            Client* client = new Client(ws);
+            socketData->client = client;
+
             std::cout << "Client connected!" << std::endl;
 
-            // Create a new Client object and store it in PerSocketData
-            auto* socketData = (PerSocketData*)ws->getUserData();
-            socketData->client = new Client(ws);
-            clients.push_back(socketData->client);
+            clients.push_back(client);
 
             // Send [captcha, 3] binary buffer
             uint8_t captchaCode = protocol["server"]["captcha"].get<uint8_t>();
@@ -103,11 +104,18 @@ int main() {
             uint8_t id = clients.size();
             buffer = {setIdCode, id, 0, 0, 0};
             ws->send(std::string_view(reinterpret_cast<char*>(buffer.data()), buffer.size()), uWS::OpCode::BINARY);
-            ws->setId(id);
+            client->setId(id);
+
+            // Set default rank
+            uint8_t setRankCode = protocol["server"]["setRank"].get<uint8_t>();
+            uint8_t rank = 1;
+            buffer = {setRankCode, rank};
+            ws->send(std::string_view(reinterpret_cast<char*>(buffer.data()), buffer.size()), uWS::OpCode::BINARY);
+            client->setRank(rank);
         },
 
         .message = [&clients](auto *ws, std::string_view message, uWS::OpCode opCode) {
-            auto* socketData = ws->getUserData();
+            auto* socketData = (PerSocketData*)ws->getUserData();
             Client* client = socketData->client;
 
             if (opCode == uWS::OpCode::BINARY) {
@@ -122,11 +130,8 @@ int main() {
                 std::cout << std::endl;
 
                 // Decode the first message from the client (world name)
-                if (length > 2 && length - 2 <= 24) {
-                    std::string world;
-                    for (size_t i = 0; i < length - 2; ++i) {
-                        world += static_cast<char>(data[i]);
-                    }
+                if (length > 2 && length - 2 <= 24 && client->getWorld().empty()) {
+                    std::string world(reinterpret_cast<const char*>(data), length - 2);
                     // Remove non-alphanumeric characters and convert to lowercase
                     world.erase(std::remove_if(world.begin(), world.end(), [](char c) {
                         return !(std::isalnum(c) || c == '.' || c == '_');
