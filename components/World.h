@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-class Client; // Forward declaration
+class Client;
 
 class World {
 private:
@@ -18,6 +18,10 @@ public:
     void removeClient(Client* client);
     const std::vector<Client*>& getClients() const;
     const std::string& getName() const;
+    
+    Client* getClientByNickname(const std::string& nickname);
+    Client* getClientById(int id);
+    void broadcastMessage(const std::string& message);
 };
 
 #endif // WORLD_H

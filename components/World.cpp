@@ -18,3 +18,27 @@ const std::vector<Client*>& World::getClients() const {
 const std::string& World::getName() const {
     return name;
 }
+
+Client* World::getClientByNickname(const std::string& nickname) {
+    for (Client* client : clients) {
+        if (client->getNickname() == nickname) {
+            return client;
+        }
+    }
+    return nullptr;
+}
+
+Client* World::getClientById(int id) {
+    for (Client* client : clients) {
+        if (client->getId() == id) {
+            return client;
+        }
+    }
+    return nullptr;
+}
+
+void World::broadcastMessage(const std::string& message) {
+    for (Client* client : clients) {
+        client->send(message);
+    }
+}

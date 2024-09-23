@@ -22,6 +22,7 @@ private:
     uint8_t r, g, b;
     uint8_t tool;
     World* world; // Changed from std::string to World*
+    std::string nickname;
 
 public:
     Client(uWS::WebSocket<false, true, PerSocketData>* socket);
@@ -32,7 +33,7 @@ public:
     void setRank(int newRank);
     int getRank() const;
 
-    void setPosition(double newX, double newY);
+    void setPosition(double newX, double newY, bool teleport = false);
     std::pair<double, double> getPosition() const;
 
     void setWorld(World* newWorld);
@@ -57,6 +58,11 @@ public:
 
     double getX() const;
     double getY() const;
+
+    void setNickname(const std::string& newNickname);
+    std::string getNickname() const;
+
+    void sendBinary(const std::vector<uint8_t>& buffer);
 };
 
 #endif // CLIENT_H

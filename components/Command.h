@@ -22,4 +22,12 @@ private:
     void initializeCommandFunctions();
 
     void help(const std::vector<std::string>& args);
+    void nick(const std::vector<std::string>& args);
+    void tell(const std::vector<std::string>& args);
+    void kick(const std::vector<std::string>& args);
+    void setrank(const std::vector<std::string>& args);
+    void tp(const std::vector<std::string>& args);
+    void adminlogin(const std::vector<std::string>& args);
+    void modlogin(const std::vector<std::string>& args);
+    static std::string getEnvValue(const std::string& key);
 };

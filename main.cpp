@@ -104,7 +104,7 @@ int main() {
             sendBuffer({protocol["server"]["captcha"].get<uint8_t>(), 3});
 
             // Set client ID
-            uint8_t id = static_cast<uint8_t>(clients.size());
+            uint8_t id = static_cast<uint8_t>(clients.size() + 1);
             sendBuffer({protocol["server"]["setId"].get<uint8_t>(), id, 0, 0, 0});
             client->setId(id);
 
@@ -122,6 +122,8 @@ int main() {
 
             const auto& chatConfig = rankConfig["chat"][rankKey];
             client->setChatBucket(chatConfig[0].get<double>(), chatConfig[1].get<double>());
+
+            clients.push_back(client);
         },
 
         .message = [&protocol, &clients, &worlds](auto *ws, std::string_view message, uWS::OpCode opCode) {
@@ -133,12 +135,14 @@ int main() {
                 size_t length = message.length();
                 
                 // Log the bytes
+                /*
                 std::cout << "Received binary message of length: " << length << " | ";
                 for (size_t i = 0; i < length; ++i) {
                     std::cout << "b" << i << ": " << static_cast<int>(data[i]);
                     if (i < length - 1) std::cout << " | ";
                 }
                 std::cout << std::endl;
+                */
 
                 // Decode the first message from the client (world name)
                 if (length > 2 && length - 2 <= 24 && client->getWorld() == nullptr) {
@@ -226,8 +230,6 @@ int main() {
 
                         chunk.setColor(pixX, pixY, RGB(r, g, b));
                         chunk.saveToFile();
-
-                        std::cout << "Client " << client->getId() << " set pixel " << x << ", " << y << " to " << static_cast<int>(r) << ", " << static_cast<int>(g) << ", " << static_cast<int>(b) << std::endl;
                         break;
                     }
                     case playerUpdateLength: {
@@ -238,11 +240,9 @@ int main() {
                         uint8_t b = data[10];
                         uint8_t tool = data[11];
 
-                        client->setPosition(x, y);
+                        client->setPosition(x / 16, y / 16);
                         client->setColor(r, g, b);
                         client->setTool(tool);
-
-                        std::cout << "Client " << client->getId() << " updated position to " << static_cast<int>(x) << ", " << static_cast<int>(y) << std::endl;
                         break;
                     }
                     case clearChunkLength:
@@ -262,9 +262,10 @@ int main() {
                     cmd.execute();
                 } else {
                     // Handle regular chat messages
-                    std::string response = std::to_string(client->getId()) + ": " + std::string(message);
+                    std::string senderName = client->getNickname().empty() ? std::to_string(client->getId()) : client->getNickname();
+                    std::string response = senderName + ": " + std::string(message);
                     ws->send(response, opCode);
-                    std::cout << client->getId() << ": " << message << std::endl;
+                    std::cout << senderName << ": " << message << std::endl;
                 }
             }
         },
