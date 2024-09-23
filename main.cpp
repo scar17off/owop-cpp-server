@@ -9,6 +9,8 @@
 #include <algorithm>
 #include "components/Client.h"
 #include "components/Chunk.h"
+#include "components/Command.h"
+#include "components/World.h"
 
 struct PerSocketData {
     Client* client;
@@ -47,6 +49,7 @@ int main() {
     const int port = config["port"].get<int>();
 
     std::vector<Client*> clients;
+    std::unordered_map<std::string, World*> worlds;
 
     uWS::App()
     .get("/*", [routingDir](auto *res, auto *req) {
@@ -86,35 +89,31 @@ int main() {
         }
     })
     .ws<PerSocketData>("/*", {
-        .open = [&protocol, &clients, &config](auto *ws) {
+        .open = [&protocol, &clients, &config, &worlds](auto *ws) {
             auto* socketData = (PerSocketData*)ws->getUserData();
             Client* client = new Client(ws);
             socketData->client = client;
 
             std::cout << "Client " << client->getId() << " connected!" << std::endl;
 
-            clients.push_back(client);
+            auto sendBuffer = [&ws](const std::vector<uint8_t>& buffer) {
+                ws->send(std::string_view(reinterpret_cast<const char*>(buffer.data()), buffer.size()), uWS::OpCode::BINARY);
+            };
 
-            // Send [captcha, 3] binary buffer
-            uint8_t captchaCode = protocol["server"]["captcha"].get<uint8_t>();
-            std::vector<uint8_t> buffer = {captchaCode, 3};
-            ws->send(std::string_view(reinterpret_cast<char*>(buffer.data()), buffer.size()), uWS::OpCode::BINARY);
+            // Send captcha
+            sendBuffer({protocol["server"]["captcha"].get<uint8_t>(), 3});
 
-            // Send [0, Id, 0, 0, 0] binary buffer (id is the length of clients)
-            uint8_t setIdCode = protocol["server"]["setId"].get<uint8_t>();
-            uint8_t id = clients.size();
-            buffer = {setIdCode, id, 0, 0, 0};
-            ws->send(std::string_view(reinterpret_cast<char*>(buffer.data()), buffer.size()), uWS::OpCode::BINARY);
+            // Set client ID
+            uint8_t id = static_cast<uint8_t>(clients.size());
+            sendBuffer({protocol["server"]["setId"].get<uint8_t>(), id, 0, 0, 0});
             client->setId(id);
 
             // Set default rank
-            uint8_t setRankCode = protocol["server"]["setRank"].get<uint8_t>();
             uint8_t rank = 1;
-            buffer = {setRankCode, rank};
-            ws->send(std::string_view(reinterpret_cast<char*>(buffer.data()), buffer.size()), uWS::OpCode::BINARY);
+            sendBuffer({protocol["server"]["setRank"].get<uint8_t>(), rank});
             client->setRank(rank);
 
-            // Set the rank's quota
+            // Set rank's quota
             const auto& rankConfig = config["bucket"];
             const std::string rankKey = (rank == 0) ? "none" : (rank == 1) ? "user" : (rank == 2) ? "mod" : "admin";
 
@@ -125,7 +124,7 @@ int main() {
             client->setChatBucket(chatConfig[0].get<double>(), chatConfig[1].get<double>());
         },
 
-        .message = [&protocol, &clients](auto *ws, std::string_view message, uWS::OpCode opCode) {
+        .message = [&protocol, &clients, &worlds](auto *ws, std::string_view message, uWS::OpCode opCode) {
             auto* socketData = (PerSocketData*)ws->getUserData();
             Client* client = socketData->client;
 
@@ -142,7 +141,7 @@ int main() {
                 std::cout << std::endl;
 
                 // Decode the first message from the client (world name)
-                if (length > 2 && length - 2 <= 24 && client->getWorld().empty()) {
+                if (length > 2 && length - 2 <= 24 && client->getWorld() == nullptr) {
                     std::string world(reinterpret_cast<const char*>(data), length - 2);
                     // Remove non-alphanumeric characters and convert to lowercase
                     world.erase(std::remove_if(world.begin(), world.end(), [](char c) {
@@ -153,7 +152,19 @@ int main() {
                     if (world.empty()) {
                         world = "main";
                     }
-                    client->setWorld(world);
+
+                    // Create or get the world
+                    World* worldObj;
+                    auto it = worlds.find(world);
+                    if (it == worlds.end()) {
+                        worldObj = new World(world);
+                        worlds[world] = worldObj;
+                    } else {
+                        worldObj = it->second;
+                    }
+                    client->setWorld(worldObj);
+                    worldObj->addClient(client);
+
                     std::cout << "Client " << client->getId() << " joined world: " << world << std::endl;
                 }
 
@@ -182,7 +193,7 @@ int main() {
                         int tileX = x;
                         int tileY = y;
 
-                        Chunk chunk(tileX, tileY, client->getWorld());
+                        Chunk chunk(tileX, tileY, client->getWorld()->getName());
                         chunk.loadFromFile();
 
                         std::vector<uint8_t> chunkData = chunk.getData();
@@ -207,11 +218,11 @@ int main() {
                         int pixX = x % Chunk::CHUNK_SIZE;
                         int pixY = y % Chunk::CHUNK_SIZE;
 
-                        Chunk chunk(tileX, tileY, client->getWorld());
+                        Chunk chunk(tileX, tileY, client->getWorld()->getName());
                         if (chunk.isProtected() && client->getRank() < 2) break; // No permission to place on a protected chunk
                         
                         RGB currentColor = chunk.getColor(pixX, pixY);
-                        if (currentColor == RGB(r, g, b)) break;
+                        if (currentColor.r == r && currentColor.g == g && currentColor.b == b) break;
 
                         chunk.setColor(pixX, pixY, RGB(r, g, b));
                         chunk.saveToFile();
@@ -245,15 +256,29 @@ int main() {
                         break;
                 }
             } else {
-                std::string response = std::to_string(client->getId()) + ": " + std::string(message);
-                ws->send(response, opCode);
-                std::cout << client->getId() << ": " << message << std::endl;
+                std::string messageStr(message);
+                if (!messageStr.empty() && messageStr[0] == '/') {
+                    Command cmd(messageStr, client);
+                    cmd.execute();
+                } else {
+                    // Handle regular chat messages
+                    std::string response = std::to_string(client->getId()) + ": " + std::string(message);
+                    ws->send(response, opCode);
+                    std::cout << client->getId() << ": " << message << std::endl;
+                }
             }
         },
 
-        .close = [&clients](auto *ws, int code, std::string_view message) {
+        .close = [&clients, &worlds](auto *ws, int code, std::string_view message) {
             auto* socketData = ws->getUserData();
             Client* client = socketData->client;
+
+            World* world = client->getWorld();
+            world->removeClient(client);
+            if (world->getClients().empty()) {
+                worlds.erase(world->getName());
+                delete world;
+            }
 
             clients.erase(std::remove(clients.begin(), clients.end(), client), clients.end());
             delete client;
@@ -270,6 +295,11 @@ int main() {
 
     for (auto* client : clients) {
         delete client;
+    }
+
+    // Clean up worlds
+    for (auto& pair : worlds) {
+        delete pair.second;
     }
 
     std::cout << "Server shutting down" << std::endl;

@@ -6,6 +6,8 @@
 #include <vector>
 #include "Bucket.h"
 
+class World; // Forward declaration
+
 struct PerSocketData;
 
 class Client {
@@ -15,11 +17,11 @@ private:
     int rank;
     double x;
     double y;
-    std::string world;
     Bucket pixelBucket;
     Bucket chatBucket;
     uint8_t r, g, b;
     uint8_t tool;
+    World* world; // Changed from std::string to World*
 
 public:
     Client(uWS::WebSocket<false, true, PerSocketData>* socket);
@@ -33,8 +35,8 @@ public:
     void setPosition(double newX, double newY);
     std::pair<double, double> getPosition() const;
 
-    void setWorld(const std::string& newWorld);
-    std::string getWorld() const;
+    void setWorld(World* newWorld);
+    World* getWorld() const;
 
     void setPixelBucket(double rate, double time);
     Bucket& getPixelBucket();
@@ -42,7 +44,7 @@ public:
     void setChatBucket(double rate, double time);
     Bucket& getChatBucket();
 
-    void send(const std::vector<uint8_t>& data);
+    void send(const std::string& message);
     void disconnect();
 
     void setColor(uint8_t r, uint8_t g, uint8_t b);
@@ -53,8 +55,8 @@ public:
     uint8_t getB() const;
     uint8_t getTool() const;
 
-    double getX() const; // Add this method
-    double getY() const; // Add this method
+    double getX() const;
+    double getY() const;
 };
 
 #endif // CLIENT_H

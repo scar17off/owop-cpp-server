@@ -10,6 +10,7 @@ I'm using it to learn about the OWOP protocol and to build a working server to u
 - [CMake](https://cmake.org/)
 - [Git](https://git-scm.com/)
 - [Pre-built OWOP client](https://github.com/OurSources/owop-client)
+- [C++20 (C++ Standard 2020)](https://en.cppreference.com/w/cpp/20)
 
 ## Building
 
